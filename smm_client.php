@@ -1,24 +1,21 @@
 <?php
 /**
  * SMM Panel API Integration Client (PHP)
- * 
+ *
  * A clean, lightweight, zero-dependency PHP wrapper for connecting to
  * wholesale SMM API endpoints. Compatible with PHP 7.4 to 8.3+.
- * 
- * Powered by SMM Orange (https://smmorange.com)
  */
-
 class SmmApiClient {
     private $apiUrl;
     private $apiKey;
 
     /**
      * Constructor
-     * 
-     * @param string $apiKey Your API Key from your SMM Orange Account
-     * @param string $apiUrl Optional custom API endpoint URL
+     *
+     * @param string $apiKey Your API Key
+     * @param string $apiUrl API endpoint URL
      */
-    public function __construct($apiKey, $apiUrl = 'https://smmorange.com/api/v2') {
+    public function __construct($apiKey, $apiUrl = 'https://chheansmm.com/api/v2') {
         $this->apiKey = $apiKey;
         $this->apiUrl = rtrim($apiUrl, '/');
     }
@@ -32,7 +29,7 @@ class SmmApiClient {
 
     /**
      * Place a new social media marketing order.
-     * 
+     *
      * @param array $params Order parameters (service, link, quantity, runs, interval)
      */
     public function addOrder($params) {
@@ -42,19 +39,19 @@ class SmmApiClient {
 
     /**
      * Get the status of an existing order.
-     * 
+     *
      * @param int $orderId The ID of the order
      */
     public function getOrderStatus($orderId) {
         return $this->request([
             'action' => 'status',
-            'order' => $orderId
+            'order'  => $orderId
         ]);
     }
 
     /**
      * Get the status of multiple orders.
-     * 
+     *
      * @param array $orderIds Array of order IDs
      */
     public function getMultiOrderStatus(array $orderIds) {
@@ -72,7 +69,7 @@ class SmmApiClient {
     }
 
     /**
-     * Execute POST requests to the SMM API endpoint.
+     * Execute POST requests to the SMM API endpoint via cURL.
      */
     private function request(array $data) {
         $data['key'] = $this->apiKey;
@@ -86,7 +83,7 @@ class SmmApiClient {
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
+        $error    = curl_error($ch);
         curl_close($ch);
 
         if ($error) {
