@@ -1,179 +1,86 @@
 <?php
 require_once 'smm_client.php';
 
-// Provider API Configuration
-$apiKey = 'kyx_299afda8925a49d4b721f16ee083f8c2'; 
-$apiUrl = 'https://smmorange.com/api';
+// Initialize with your API Key and API Endpoint
+$apiKey = 'c1260ecb488566d9946baf1610f63a42';
+$apiUrl = 'https://chheansmm.com/api/v2';
 
-$api = new SmmApiClient($apiKey, $apiUrl);
+$client = new SmmApiClient($apiKey, $apiUrl);
 
-// Handle Form Submissions
+// Fetch account balance to display
+$balanceData = $client->getBalance();
+$balance = $balanceData['balance'] ?? '0.00';
+
+// Handle order form submission
 $message = '';
-$messageType = 'info';
-$orderStatusResult = null;
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['form_action'] ?? '';
+    $serviceId = intval($_POST['service_id'] ?? 0);
+    $link      = trim($_POST['link'] ?? '');
+    $quantity  = intval($_POST['quantity'] ?? 0);
 
-    // 1. Place Order Action
-    if ($action === 'add_order') {
-        $serviceId = intval($_POST['service_id'] ?? 0);
-        $link = trim($_POST['link'] ?? '');
-        $quantity = intval($_POST['quantity'] ?? 0);
+    if ($serviceId && $link && $quantity) {
+        $response = $client->addOrder([
+            'service'  => $serviceId,
+            'link'     => $link,
+            'quantity' => $quantity
+        ]);
 
-        if ($serviceId > 0 && !empty($link) && $quantity > 0) {
-            $response = $api->addOrder([
-                'service'  => $serviceId,
-                'link'     => $link,
-                'quantity' => $quantity
-            ]);
-
-            if (isset($response['order'])) {
-                $message = "Order placed successfully! Order ID: #" . htmlspecialchars($response['order']);
-                $messageType = "success";
-            } else {
-                $errorMsg = $response['error'] ?? 'Unknown error occurred.';
-                $message = "Failed to place order: " . htmlspecialchars($errorMsg);
-                $messageType = "danger";
-            }
+        if (isset($response['order'])) {
+            $message = "<div style='color: green; font-weight: bold;'>Order Placed Successfully! Order ID: " . htmlspecialchars($response['order']) . "</div>";
         } else {
-            $message = "Please fill in all order fields correctly.";
-            $messageType = "danger";
+            $error = $response['error'] ?? 'Unknown error occurred.';
+            $message = "<div style='color: red; font-weight: bold;'>Order Failed: " . htmlspecialchars($error) . "</div>";
         }
-    }
-
-    // 2. Check Order Status Action
-    if ($action === 'check_status') {
-        $orderId = trim($_POST['order_id'] ?? '');
-        if (!empty($orderId)) {
-            if (strpos($orderId, ',') !== false) {
-                $ids = array_map('trim', explode(',', $orderId));
-                $orderStatusResult = $api->getMultiOrderStatus($ids);
-            } else {
-                $orderStatusResult = $api->getOrderStatus(intval($orderId));
-            }
-        } else {
-            $message = "Please enter a valid Order ID.";
-            $messageType = "danger";
-        }
+    } else {
+        $message = "<div style='color: red;'>Please fill in all required fields correctly.</div>";
     }
 }
-
-// Fetch Account Balance and Available Services from smmorange.com
-$balanceData = $api->getBalance();
-$services = $api->getServices();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMM Panel - Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>SMM Panel - Order Services</title>
     <style>
-        body { background-color: #f8f9fa; padding-top: 30px; }
-        .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 24px; }
-        .header-bg { background: linear-gradient(135deg, #0d6efd, #0dcaf0); color: white; border-radius: 12px; padding: 20px; }
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .balance-box { background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 16px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+        button:hover { background: #218838; }
     </style>
 </head>
 <body>
-<div class="container" style="max-width: 900px;">
 
-    <!-- Dashboard Header -->
-    <div class="header-bg d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="mb-0">SMM Panel Services</h3>
-            <small>Automated API Order System</small>
-        </div>
-        <div class="text-end">
-            <span class="d-block text-white-50">Account Balance</span>
-            <h4 class="mb-0">
-                <?php 
-                if (isset($balanceData['balance'])) {
-                    echo htmlspecialchars($balanceData['balance']) . ' ' . htmlspecialchars($balanceData['currency'] ?? 'USD');
-                } else {
-                    echo '$0.00';
-                }
-                ?>
-            </h4>
-        </div>
+    <h2>Place New Order</h2>
+
+    <div class="balance-box">
+        Account Balance: <strong>$<?= htmlspecialchars($balance) ?></strong>
     </div>
 
-    <!-- Feedback Message Alert -->
-    <?php if (!empty($message)): ?>
-        <div class="alert alert-<?= $messageType ?> alert-dismissible fade show" role="alert">
-            <?= $message ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    <?php endif; ?>
+    <?= $message ?>
 
-    <div class="row">
-        <!-- Section 1: Place New Order -->
-        <div class="col-md-7">
-            <div class="card p-4">
-                <h5 class="card-title mb-3">Place New Order</h5>
-                <form method="POST" action="">
-                    <input type="hidden" name="form_action" value="add_order">
-
-                    <div class="mb-3">
-                        <label for="service_id" class="form-label">Select Service</label>
-                        <select class="form-select" id="service_id" name="service_id" required>
-                            <option value="">-- Choose a Service --</option>
-                            <?php if (is_array($services) && !isset($services['error'])): ?>
-                                <?php foreach ($services as $srv): ?>
-                                    <option value="<?= htmlspecialchars($srv['service']) ?>">
-                                        [ID: <?= htmlspecialchars($srv['service']) ?>] <?= htmlspecialchars($srv['name']) ?> - $<?= htmlspecialchars($srv['rate']) ?>/1k
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <option value="" disabled>Unable to load services from provider</option>
-                            <?php endif; ?>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="link" class="form-label">Target Link / URL</label>
-                        <input type="url" class="form-control" id="link" name="link" placeholder="https://instagram.com/username" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="quantity" class="form-label">Quantity</label>
-                        <input type="number" class="form-control" id="quantity" name="quantity" placeholder="1000" min="1" required>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">Submit Order</button>
-                </form>
-            </div>
+    <form method="POST">
+        <div class="form-group">
+            <label for="service_id">Service ID:</label>
+            <input type="number" id="service_id" name="service_id" placeholder="Enter Service ID" required>
         </div>
 
-        <!-- Section 2: Order Status Lookup -->
-        <div class="col-md-5">
-            <div class="card p-4">
-                <h5 class="card-title mb-3">Check Order Status</h5>
-                <form method="POST" action="">
-                    <input type="hidden" name="form_action" value="check_status">
-                    
-                    <div class="mb-3">
-                        <label for="order_id" class="form-label">Order ID(s)</label>
-                        <input type="text" class="form-control" id="order_id" name="order_id" placeholder="e.g. 1024 or 1024,1025" required>
-                        <div class="form-text">Separate multiple IDs with a comma.</div>
-                    </div>
-
-                    <button type="submit" class="btn btn-secondary w-100">Check Status</button>
-                </form>
-
-                <!-- Status Results Display -->
-                <?php if ($orderStatusResult !== null): ?>
-                    <hr>
-                    <h6 class="fw-bold">Status Results:</h6>
-                    <pre class="bg-light p-3 rounded" style="font-size: 0.85rem; max-height: 200px; overflow-y: auto;"><?= htmlspecialchars(print_r($orderStatusResult, true)) ?></pre>
-                <?php endif; ?>
-            </div>
+        <div class="form-group">
+            <label for="link">Target Link:</label>
+            <input type="url" id="link" name="link" placeholder="https://example.com/your-post" required>
         </div>
-    </div>
 
-</div>
+        <div class="form-group">
+            <label for="quantity">Quantity:</label>
+            <input type="number" id="quantity" name="quantity" min="100" placeholder="1000" required>
+        </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <button type="submit">Submit Order</button>
+    </form>
+
 </body>
 </html>
