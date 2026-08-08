@@ -1,13 +1,10 @@
 <?php
 /**
  * SMM Panel API Integration Client (PHP)
- *
- * A clean, lightweight, zero-dependency PHP wrapper for connecting to
- * wholesale SMM API endpoints. Compatible with PHP 7.4 to 8.3+.
  */
 class SmmApiClient {
-    private $apiUrl;
     private $apiKey;
+    private $apiUrl;
 
     /**
      * Constructor
@@ -21,51 +18,69 @@ class SmmApiClient {
     }
 
     /**
-     * Retrieve list of all available services, categories, and pricing.
+     * Get account balance using custom cURL POST request
+     */
+    public function getBalance() {
+        $endpoint = $this->apiUrl;
+        $payload = [
+            'key' => $this->apiKey,
+            'action' => 'balance',
+        ];
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query($payload),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_USERAGENT => 'SmmApiClient/1.0.0 (PHP)',
+        ]);
+
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            return ['error' => 'cURL Error: ' . $error];
+        }
+
+        $decoded = json_decode($response, true);
+        return $decoded === null ? ['error' => 'Failed to parse JSON response: ' . $response] : $decoded;
+    }
+
+    /**
+     * Retrieve list of all available services.
      */
     public function getServices() {
         return $this->request(['action' => 'services']);
     }
 
     /**
-     * Place a new social media marketing order.
+     * Place a new order.
      *
-     * @param array $params Order parameters (service, link, quantity, runs, interval)
+     * @param array $params Order parameters (service, link, quantity)
      */
-    public function addOrder($params) {
+    public function addOrder(array $params) {
         $postData = array_merge(['action' => 'add'], $params);
         return $this->request($postData);
     }
 
     /**
-     * Get the status of an existing order.
+     * Get status of a single order.
      *
-     * @param int $orderId The ID of the order
+     * @param int $orderId
      */
     public function getOrderStatus($orderId) {
-        return $this->request([
-            'action' => 'status',
-            'order'  => $orderId
-        ]);
+        return $this->request(['action' => 'status', 'order' => $orderId]);
     }
 
     /**
-     * Get the status of multiple orders.
+     * Get status of multiple orders.
      *
-     * @param array $orderIds Array of order IDs
+     * @param array $orderIds
      */
     public function getMultiOrderStatus(array $orderIds) {
-        return $this->request([
-            'action' => 'status',
-            'orders' => implode(',', $orderIds)
-        ]);
-    }
-
-    /**
-     * Retrieve your current account balance and currency code.
-     */
-    public function getBalance() {
-        return $this->request(['action' => 'balance']);
+        return $this->request(['action' => 'status', 'orders' => implode(',', $orderIds)]);
     }
 
     /**
@@ -75,15 +90,17 @@ class SmmApiClient {
         $data['key'] = $this->apiKey;
 
         $ch = curl_init($this->apiUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'SmmApiClient/1.0.0 (PHP)');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query($data),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_USERAGENT => 'SmmApiClient/1.0.0 (PHP)',
+        ]);
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error    = curl_error($ch);
+        $error = curl_error($ch);
         curl_close($ch);
 
         if ($error) {
