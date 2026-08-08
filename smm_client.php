@@ -37,7 +37,7 @@ class SmmApiClient {
      */
     public function addOrder($params) {
         $postData = array_merge(['action' => 'add'], $params);
-        return $postData;
+        return $postData; // <-- This only returns local array data!
     }
 
     /**
