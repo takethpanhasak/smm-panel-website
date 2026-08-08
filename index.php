@@ -4,7 +4,7 @@ require_once 'smm_client.php';
 
 // 2. Initialize with your API credentials
 // Replace with your actual API Key from your provider (e.g. Chhean Smm or SMM Orange)
-$apiKey = 'c1260ecb488566d9946baf1610f63a42'; 
+$apiKey = 'kyx_299afda8925a49d4b721f16ee083f8c2'; 
 $apiUrl = 'https://chheansmm.com/api/v2'; // Or 'https://smmorange.com/api/v2'
 
 $client = new SmmApiClient($apiKey, $apiUrl);
