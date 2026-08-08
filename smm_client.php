@@ -37,7 +37,7 @@ class SmmApiClient {
      */
     public function addOrder($params) {
         $postData = array_merge(['action' => 'add'], $params);
-        return $this->request($postData); // ✅ Sends POST request via cURL
+        return $this->request($postData);
     }
 
     /**
